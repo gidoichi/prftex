@@ -4,19 +4,22 @@
 #
 # prftex.sh
 #
-# # 概要
+# 概要
 # .texファイルを読み込み，推奨されない特定の言い回しに対して警告メッセージを出力
 #
-# Written by Shinichi Yanagido (s.yanagido@gmail.com) on 2018-11-27
+# Written by Shinichi Yanagido (s.yanagido@gmail.com) on 2019-02-26
 #
+######################################################################
+
+
+######################################################################
+# Initial Configuration
 ######################################################################
 
 # === Initialize shell environment ===================================
 set -u
 umask 0022
 export LC_ALL=C
-type command >/dev/null 2>&1 && type getconf >/dev/null 2>&1 &&
-    export PATH="$(command -p getconf PATH)${PATH+:}${PATH-}"
 export UNIX_STD=2003  # to make HP-UX conform to POSIX
 
 # === Define the functions for printing usage and exiting ============
@@ -39,8 +42,6 @@ error_exit() {
 
 # === Detect home directory of this app. and define more =============
 Homedir="$(d=${0%/*}/; [ "_$d" = "_$0/" ] && d='./'; cd "$d.."; pwd)"
-# PATH="$Homedir/bin:$Homedir/tool:$PATH"       # for additional command
-# . "$Homedir/conf/COMMON.SHLIB" # read common configuration
 
 
 ######################################################################
@@ -67,23 +68,27 @@ file="$1"
 # Main Routine
 ######################################################################
 
+# === 検索結果の一時置き場 ===========================================
+trap 'exit_trap' EXIT HUP INT QUIT PIPE ALRM TERM
+Tmp=`mktemp -d -t "_${0##*/}.$$.XXXXXXXXXXX"` || error_exit 1 'Failed to mktemp'
+
 # === コメントを除いて，禁止句の探索 =================================
-nl -s ': ' "$file"                                                        |
-    grep -v '^\s*%'                                                       |
-    sed 's/[^\]%.*$//'                                                    |
-    awk 'BEGIN{incomment = 0;}                                            #
-         /\\begin{comment}/{incomment = 1}                                #
-         incomment == 0                                                   #
-         /\\end{comment}/{incomment = 0}'                                 |
-    while read line; do                                                   #
-        cut -d ' ' -f 1 "$fform"                                        | #
-            while read pattern; do                                      # #
-                echo "$line"                                          | # #
-                    grep "$pattern"                                   | # #
-                    sed -r "s/$pattern/\x1b[38;5;9m$pattern\x1b[0m/g" | # #
-                    sed "s/$/\n/"                                       # #
-            done                                                          #
-    done
+# --- 0.コメントの削除 -----------------------------------------------
+nl -s ': ' "$file"                     |
+grep -v '^\s*[0-9]\{1,\}:\s*%'         |
+sed 's/[^\]%.*$//'                     |
+awk 'BEGIN{incomment = 0;}             #
+     /\\begin{comment}/{incomment = 1} #
+     incomment == 0                    #
+     /\\end{comment}/{incomment = 0}'  > $Tmp/prfing
+
+# --- 1.禁止句の探索 -------------------------------------------------
+cut -d ' ' -f 1 "$fform" | while read pattern; do
+    sed -i "s/$pattern/\x1b[38;5;1m${pattern}\x1b[0m/g" $Tmp/prfing
+done
+
+# === 該当行のみ表示 =================================================
+grep '\[38;5;1m' $Tmp/prfing
 
 
 ######################################################################
