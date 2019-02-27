@@ -25,7 +25,7 @@ export UNIX_STD=2003  # to make HP-UX conform to POSIX
 # === Define the functions for printing usage and exiting ============
 print_usage_and_exit () {
     cat <<-USAGE 1>&2
-	Usage   : ${0##*/}
+	Usage   : ${0##*/} <texfile>
 	USAGE
     exit 1
 }
@@ -56,7 +56,23 @@ esac
 # === Initialize parameters ==========================================
 file=''
 fform='./forms'
-grepopts=''
+count=false
+
+# === Read options ===================================================
+while :; do
+    case "${1:-}" in
+        -n)     # カウント
+                count=true
+                shift
+                ;;
+        --)     break
+                ;;
+        --*|-*) error_exit 1 'Invalid option'
+                ;;
+        *)      break
+                ;;
+    esac
+done
 
 # === Validate argument ==============================================
 case $# in [!1]) print_usage_and_exit;; esac # 対象のtexファイルが与えられること
@@ -72,23 +88,29 @@ file="$1"
 trap 'exit_trap' EXIT HUP INT QUIT PIPE ALRM TERM
 Tmp=`mktemp -d -t "_${0##*/}.$$.XXXXXXXXXXX"` || error_exit 1 'Failed to mktemp'
 
-# === コメントを除いて，禁止句の探索 =================================
+# === 禁止句の探索 ===================================================
 # --- 0.コメントの削除 -----------------------------------------------
-nl -s ': ' "$file"                     |
-grep -v '^\s*[0-9]\{1,\}:\s*%'         |
-sed 's/[^\]%.*$//'                     |
-awk 'BEGIN{incomment = 0;}             #
-     /\\begin{comment}/{incomment = 1} #
-     incomment == 0                    #
-     /\\end{comment}/{incomment = 0}'  > $Tmp/prfing
+nl -s ': ' "$file"                      |
+grep -v '^\s*[0-9]\{1,\}:\s*%'          |
+sed 's/[^\]%.*$//'                      |
+awk 'BEGIN             {incomment = 0}  #
+     /\\begin{comment}/{incomment = 1}  #
+     incomment == 0                     #
+     /\\end{comment}/  {incomment = 0}' > $Tmp/prfing
 
-# --- 1.禁止句の探索 -------------------------------------------------
-cut -d ' ' -f 1 "$fform" | while read pattern; do
-    sed -i "s/$pattern/\x1b[38;5;1m${pattern}\x1b[0m/g" $Tmp/prfing
-done
-
-# === 該当行のみ表示 =================================================
-grep '\[38;5;1m' $Tmp/prfing
+# --- 1.禁止句の処理 -------------------------------------------------
+if $count; then
+    # --- 禁止句の数え上げ
+    cut -d ' ' -f 1 "$fform" | while read pattern; do
+        grep -c $pattern $Tmp/prfing | grep -v 0 | sed "s/^/$pattern: /"
+    done
+else
+    # --- 禁止句の表示
+    cut -d ' ' -f 1 "$fform" | while read pattern; do
+        sed -i "s/$pattern/\x1b[38;5;1m${pattern}\x1b[0m/g" $Tmp/prfing
+    done
+    grep '\[38;5;1m' $Tmp/prfing
+fi
 
 
 ######################################################################
