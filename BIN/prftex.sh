@@ -5,9 +5,9 @@
 # prftex.sh
 #
 # 概要
-# .texファイルを読み込み，推奨されない特定の言い回しに対して警告メッセージを出力
+# TeXファイルを読み込み，推奨されない特定の言い回しに対して警告メッセージを出力
 #
-# Written by Shinichi Yanagido (s.yanagido@gmail.com) on 2019-02-26
+# Written by Shinichi Yanagido (s.yanagido@gmail.com) on 2019-02-28
 #
 ######################################################################
 
@@ -25,7 +25,10 @@ export UNIX_STD=2003  # to make HP-UX conform to POSIX
 # === Define the functions for printing usage and exiting ============
 print_usage_and_exit () {
     cat <<-USAGE 1>&2
-	Usage   : ${0##*/} <texfile>
+	Usage   : ${0##*/} [option...] <texfile>
+	          ${0##*/} [-h|--help]
+	Options : -n          禁止句の個数を表示
+	          -w          コメント内も探索
 	USAGE
     exit 1
 }
@@ -54,6 +57,10 @@ case "$# ${1:-}" in
 esac
 
 # === Initialize parameters ==========================================
+red=$(printf '\e[31m')
+green=$(printf '\e[32m')
+cyan=$(printf '\e[36m')
+clr=$(printf '\e[0m')
 file=''
 fform="$Homedir/DATA/forms"
 count=''
@@ -70,7 +77,6 @@ while :; do
                 comment=1
                 shift
                 ;;
-
         --)     break
                 ;;
         --*|-*) error_exit 1 'Invalid option'
@@ -98,19 +104,29 @@ Tmp=`mktemp -d -t "_${0##*/}.$$.XXXXXXXXXXX"` || error_exit 1 'Failed to mktemp'
 # --- 0.対象ファイルを移動 -------------------------------------------
 cp "$file" $Tmp/prfing
 
-# --- 1.コメントを削除 -----------------------------------------------
-if [ -z "$comment" ]; then
-    (rm $Tmp/prfing                          &&
-     nl -s ': ' "$file"                      |
-     grep -v '^\s*[0-9]\{1,\}:\s*%'          |
-     sed 's/[^\]%.*$//'                      |
-     awk 'BEGIN             {incomment = 0}  #
-          /\\begin{comment}/{incomment = 1}  #
-          incomment == 0                     #
-          /\\end{comment}/  {incomment = 0}' > $Tmp/prfing) < $Tmp/prfing
+# --- 1.標準出力がパイプなら色をつけない -----------------------------
+if ! [ -t 1 ]; then
+    red=''
+    green=''
+    cyan=''
+    clr=''
 fi
 
-# --- 2.禁止句を処理 -------------------------------------------------
+# --- 2.必要に応じてコメントを削除 -----------------------------------
+if [ -z "$comment" ]; then
+    (rm $Tmp/prfing                                        &&
+     nl -s ":" "$file"                                     |
+     grep -v '^\s*[0-9]\{1,\}:\s*\(%\|$\)'                 |
+     sed 's/\([^\]\)%.*$/\1/'                              |
+     awk 'BEGIN             {incomment = 0}                #
+          /\\begin{comment}/{incomment = 1}                #
+          incomment == 0                                   #
+          /\\end{comment}/  {incomment = 0}'               |
+     sed "s/^\(\s*[0-9]\{1,\}\)\(:\)/$green\1$cyan\2$clr/" \
+     > $Tmp/prfing                                         ) < $Tmp/prfing
+fi
+
+# --- 3.禁止句を処理 -------------------------------------------------
 if [ -n "$count" ]; then
     # --- 禁止句を数え上げ
     cut -d ' ' -f 1 "$fform" | while read pattern; do
@@ -121,10 +137,14 @@ if [ -n "$count" ]; then
     done
 else
     # --- 禁止句を表示
+    sed -i "s/^/-/" $Tmp/prfing
     cut -d ' ' -f 1 "$fform" | while read pattern; do
-        sed -i "s/$pattern/\x1b[38;5;1m${pattern}\x1b[0m/g" $Tmp/prfing
+        (rm $Tmp/prfing                      &&
+         sed "s/^-\(.*$pattern\)/\1/"        |
+         sed "s/$pattern/$red$pattern$clr/g" \
+         > $Tmp/prfing                       ) < $Tmp/prfing
     done
-    grep '\[38;5;1m' $Tmp/prfing
+    grep -v '^-' $Tmp/prfing
 fi
 
 
