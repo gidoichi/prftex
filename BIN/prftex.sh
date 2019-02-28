@@ -56,15 +56,21 @@ esac
 # === Initialize parameters ==========================================
 file=''
 fform="$Homedir/DATA/forms"
-count=false
+count=''
+comment=''
 
 # === Read options ===================================================
 while :; do
     case "${1:-}" in
         -n)     # カウント
-                count=true
+                count=1
                 shift
                 ;;
+        -w)     # コメント内も探索
+                comment=1
+                shift
+                ;;
+
         --)     break
                 ;;
         --*|-*) error_exit 1 'Invalid option'
@@ -89,23 +95,32 @@ trap 'exit_trap' EXIT HUP INT QUIT PIPE ALRM TERM
 Tmp=`mktemp -d -t "_${0##*/}.$$.XXXXXXXXXXX"` || error_exit 1 'Failed to mktemp'
 
 # === 禁止句の探索 ===================================================
-# --- 0.コメントの削除 -----------------------------------------------
-nl -s ': ' "$file"                      |
-grep -v '^\s*[0-9]\{1,\}:\s*%'          |
-sed 's/[^\]%.*$//'                      |
-awk 'BEGIN             {incomment = 0}  #
-     /\\begin{comment}/{incomment = 1}  #
-     incomment == 0                     #
-     /\\end{comment}/  {incomment = 0}' > $Tmp/prfing
+# --- 0.対象ファイルを移動 -------------------------------------------
+cp "$file" $Tmp/prfing
 
-# --- 1.禁止句の処理 -------------------------------------------------
-if $count; then
-    # --- 禁止句の数え上げ
+# --- 1.コメントを削除 -----------------------------------------------
+if [ -z "$comment" ]; then
+    (rm $Tmp/prfing                          &&
+     nl -s ': ' "$file"                      |
+     grep -v '^\s*[0-9]\{1,\}:\s*%'          |
+     sed 's/[^\]%.*$//'                      |
+     awk 'BEGIN             {incomment = 0}  #
+          /\\begin{comment}/{incomment = 1}  #
+          incomment == 0                     #
+          /\\end{comment}/  {incomment = 0}' > $Tmp/prfing) < $Tmp/prfing
+fi
+
+# --- 2.禁止句を処理 -------------------------------------------------
+if [ -n "$count" ]; then
+    # --- 禁止句を数え上げ
     cut -d ' ' -f 1 "$fform" | while read pattern; do
-        grep -c $pattern $Tmp/prfing | grep -v 0 | sed "s/^/$pattern: /"
+        sed "s/$pattern/$pattern\n/g" $Tmp/prfing |
+        grep -c "$pattern"                        |
+        grep -v '^0$'                             |
+        sed "s/^/$pattern\t:/"
     done
 else
-    # --- 禁止句の表示
+    # --- 禁止句を表示
     cut -d ' ' -f 1 "$fform" | while read pattern; do
         sed -i "s/$pattern/\x1b[38;5;1m${pattern}\x1b[0m/g" $Tmp/prfing
     done
