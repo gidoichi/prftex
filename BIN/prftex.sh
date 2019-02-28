@@ -41,7 +41,7 @@ error_exit() {
 }
 
 # === Detect home directory of this app. and define more =============
-Homedir="$(d=${0%/*}/; [ "_$d" = "_$0/" ] && d='./'; cd "$d.."; pwd)"
+Homedir="$(d=${0%/*}/; [ "_$d" = "_$0/" ] && d='./'; pwd)"
 
 
 ######################################################################
@@ -55,7 +55,7 @@ esac
 
 # === Initialize parameters ==========================================
 file=''
-fform='./forms'
+fform="$Homedir/DATA/forms"
 count=false
 
 # === Read options ===================================================
