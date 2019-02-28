@@ -1,40 +1,40 @@
-出来る できる
-通り とおり(定義)
-或る ある
-時 とき(「場合」の細分)
-或るいは あるいは
-所が ところが
-所で ところで
-云う いう
-共に ともに
-於いて おいて
-尚 なお
-および 及び =
-筈 はず
-1ヶ月 1か月
-1ヵ月 1か月
-程 ほど
-且つ かつ
-又 また
-亦 また
-または 又は =
-下さい ください
-迄 まで
-位 ぐらい
-ヶ(1ヶ) 個(1個)
-コ(1ヶ) 個(1個)
-故に ゆえに
-毎 ごと
-様な ような(例示)
-余程 よほど
-訳 わけ
-従って したがって(接続詞)
-亙る わたる
-渡る わたる
-し易い しやすい
-全て すべて
-総て すべて
-各々 それぞれ
-夫々 それぞれ
-但し ただし
-為 ため
+出来る    Warning  できる
+通り      Warning  とおり(定義)
+或る      Warning  ある
+時        Warning  とき(「場合」の細分)
+或るいは  Warning  あるいは
+所が      Warning  ところが
+所で      Warning  ところで
+云う      Warning  いう
+共に      Warning  ともに
+於いて    Warning  おいて
+尚        Warning  なお
+および    Notice   及び
+筈        Warning  はず
+1ヶ月     Warning  1か月
+1ヵ月     Warning  1か月
+程        Warning  ほど
+且つ      Warning  かつ
+又        Warning  また
+亦        Warning  また
+または    Notice   又は
+下さい    Warning  ください
+迄        Warning  まで
+位        Warning  ぐらい
+ヶ(1ヶ)   Warning  個(1個)
+コ(1ヶ)   Warning  個(1個)
+故に      Warning  ゆえに
+毎        Warning  ごと
+様な      Warning  ような(例示)
+余程      Warning  よほど
+訳        Warning  わけ
+従って    Warning  したがって(接続詞)
+亙る      Warning  わたる
+渡る      Warning  わたる
+し易い    Warning  しやすい
+全て      Warning  すべて
+総て      Warning  すべて
+各々      Warning  それぞれ
+夫々      Warning  それぞれ
+但し      Warning  ただし
+為        Warning  ため

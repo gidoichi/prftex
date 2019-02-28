@@ -57,10 +57,11 @@ case "$# ${1:-}" in
 esac
 
 # === Initialize parameters ==========================================
-red=$(printf '\e[31m')
-green=$(printf '\e[32m')
-cyan=$(printf '\e[36m')
-clr=$(printf '\e[0m')
+red=$(printf    '\e[31m')
+green=$(printf  '\e[32m')
+yellow=$(printf '\e[33m')
+cyan=$(printf   '\e[36m')
+clr=$(printf    '\e[0m')
 file=''
 fform="$Homedir/DATA/forms"
 count=''
@@ -108,6 +109,7 @@ cp "$file" $Tmp/prfing
 if ! [ -t 1 ]; then
     red=''
     green=''
+    yellow=''
     cyan=''
     clr=''
 fi
@@ -129,16 +131,27 @@ fi
 # --- 3.禁止句を処理 -------------------------------------------------
 if [ -n "$count" ]; then
     # --- 禁止句を数え上げ
-    cut -d ' ' -f 1 "$fform" | while read pattern; do
+    # 1:禁止句 2:分類 3:備考
+    cat "$fform" | while read line; do
+        pattern=$(echo $line | cut -d ' ' -f 1)
+        class=$(echo $line                        |
+                cut -d ' ' -f 2                   |
+                sed "s/Warning/${red}\0${clr}/"   |
+                sed "s/Notice/${yellow}\0${clr}/" )
+        desc=$(echo $line | cut -d ' ' -f 3)
         sed "s/$pattern/$pattern\n/g" $Tmp/prfing |
         grep -c "$pattern"                        |
         grep -v '^0$'                             |
-        sed "s/^/$pattern\t:/"
+        sed "s/^/[$class] $pattern\t:/"           |
+        sed "s/$/ :$desc/"
     done
+
 else
     # --- 禁止句を表示
     sed -i "s/^/-/" $Tmp/prfing
-    cut -d ' ' -f 1 "$fform" | while read pattern; do
+    # 1:禁止句 2:分類 3:備考
+    cat "$fform" | while read line; do
+        pattern=$(echo $line | cut -d ' ' -f 1)
         (rm $Tmp/prfing                      &&
          sed "s/^-\(.*$pattern\)/\1/"        |
          sed "s/$pattern/$red$pattern$clr/g" \
